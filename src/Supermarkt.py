@@ -7,7 +7,7 @@ from forecasting import forecast_sales  # Import the forecasting function
 
 def get_data_from_excel():
     df = pd.read_excel(
-        io='data\Supermarket.xlsx',
+        io='data/Supermarket.xlsx',
         engine='openpyxl',
         sheet_name='Sales',
         skiprows=3,
