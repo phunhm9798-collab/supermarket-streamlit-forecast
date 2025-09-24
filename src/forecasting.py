@@ -1,5 +1,6 @@
 import pandas as pd
 import numpy as np
+import streamlit as st
 from statsmodels.tsa.holtwinters import ExponentialSmoothing
 from statsmodels.tsa.statespace.sarimax import SARIMAX
 import datetime
@@ -120,7 +121,7 @@ class HoltWintersForecast(ForecastModel):
     """Holt-Winters forecasting model"""
 
     def fit(self) -> None:
-        """Fit Holt-Winters model"""
+        """Fit Holt-Winters model with deployment-safe parameters"""
         series = self.data.iloc[:, 0]
         n = len(series)
         seasonal_periods = 7 if n >= 14 else None
@@ -131,49 +132,52 @@ class HoltWintersForecast(ForecastModel):
                     series,
                     trend='add',
                     seasonal='add',
-                    seasonal_periods=seasonal_periods
+                    seasonal_periods=seasonal_periods,
+                    initialization_method='estimated'  # More stable initialization
                 )
             else:
                 self.model = ExponentialSmoothing(
                     series,
                     trend='add',
-                    seasonal=None
+                    seasonal=None,
+                    initialization_method='estimated'
                 )
 
-            # Remove use_boxcox parameter and simplify fit
-            self.model = self.model.fit(optimized=True)
+            # Simplified fit parameters for better deployment compatibility
+            self.model = self.model.fit(
+                method='least_squares',  # More stable than MLE
+                remove_bias=False,
+                use_brute=False
+            )
             self.fitted = True
         except Exception as e:
-            print(f"Failed to fit Holt-Winters model: {str(e)}")
+            st.warning(f"Using fallback forecast method: {str(e)}")
             self.fitted = False
 
     def predict(self, periods: int) -> pd.Series:
         """Generate forecast using fitted Holt-Winters model"""
         if not self.fitted:
-            # Fallback to naive forecast if model wasn't fitted
-            last_value = float(self.data.iloc[-1, 0])
-            last_date = self.data.index[-1]
-            dates = pd.date_range(
-                start=last_date + pd.Timedelta(days=1),
-                periods=periods,
-                freq='D'
-            )
-            return pd.Series([last_value] * periods, index=dates)
+            return self._naive_forecast(periods)
 
         try:
             forecast = self.model.forecast(periods)
+            # Ensure no negative values in forecast
+            forecast = forecast.clip(lower=0)
             return forecast
         except Exception as e:
-            print(f"Failed to generate forecast: {str(e)}")
-            # Fallback to naive forecast
-            last_value = float(self.data.iloc[-1, 0])
-            last_date = self.data.index[-1]
-            dates = pd.date_range(
-                start=last_date + pd.Timedelta(days=1),
-                periods=periods,
-                freq='D'
-            )
-            return pd.Series([last_value] * periods, index=dates)
+            st.warning(f"Falling back to naive forecast: {str(e)}")
+            return self._naive_forecast(periods)
+
+    def _naive_forecast(self, periods: int) -> pd.Series:
+        """Generate naive forecast using last known value"""
+        last_value = float(self.data.iloc[-1, 0])
+        last_date = self.data.index[-1]
+        dates = pd.date_range(
+            start=last_date + pd.Timedelta(days=1),
+            periods=periods,
+            freq='D'
+        )
+        return pd.Series([last_value] * periods, index=dates)
 
 
 def forecast_sales(df: pd.DataFrame,
