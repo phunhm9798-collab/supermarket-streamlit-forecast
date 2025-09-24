@@ -66,4 +66,4 @@ Contributions are welcome! Please open an issue or submit a pull request for any
 
 ## License
 
-This project is licensed under the MIT License. See the LICENSE file for more details.
+This project is licensed under the MIT License. See the [LICENSE file](https://github.com/phunhm9798-collab/supermarket-streamlit-forecast/blob/fad8e84752ebb80c8dcbdbd53393ef47d5a4aa78/LICENSE) for more details.
