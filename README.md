@@ -9,9 +9,11 @@ supermarket-streamlit-forecast
 ├── src
 │   ├── Supermarkt.py          # Main Streamlit application code
 │   ├── data_loader.py         # Data loading and preprocessing functions
-│   ├── forecasting.py          # Time series forecasting implementation
+│   ├── forecasting.py         # Time series forecasting implementation
 │   ├── utils.py               # Utility functions for data handling
 │   └── requirements.txt       # Python dependencies
+│   └── __init__.py       
+                     
 ├── data
 │   └── Supermarket.xlsx       # Excel file containing sales data
 ├── models
