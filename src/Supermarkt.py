@@ -2,7 +2,7 @@
 import pandas as pd
 import plotly.express as px
 import streamlit as st
-from forecasting import forecast_sales  # Import the forecasting function
+from src import forecasting  # Import the forecasting function
 
 
 def get_data_from_excel():
@@ -129,6 +129,7 @@ st.sidebar.download_button(
     file_name='supermarket_filtered.csv',
     mime='text/csv'
 )
+st.session_state['df_filtered'] = df_selection.copy()
 
 # Top products by revenue (new)
 st.subheader("Top 10 Product Lines by Revenue")
@@ -167,9 +168,50 @@ st.header('Sales Forecasting')
 
 # Forecasting input
 forecast_period = st.number_input(
-    'Enter the number of periods to forecast:', min_value=1, max_value=12, value=3)
+    'Enter the number of periods to forecast:',
+    min_value=1,
+    max_value=12,
+    value=3
+)
+
+# Add method selection
+forecast_method = st.selectbox(
+    'Select forecasting method:',
+    options=['ARIMA', 'Holt-Winters'],
+    index=0
+)
+
+# Get the filtered df
+df_for_forecast = st.session_state.get('df_filtered', df_selection)
 
 if st.button('Forecast Sales'):
-    forecasted_sales = forecast_sales(df_selection, forecast_period)
-    # Display the forecasted sales as a line chart
-    st.line_chart(forecasted_sales)
+    # Convert method name to parameter
+    method = 'arima' if forecast_method == 'ARIMA' else 'holtwinters'
+
+    with st.spinner(f'Calculating {forecast_method} forecast...'):
+        forecasted_sales = forecasting.get_forecast(
+            df_for_forecast,
+            periods=forecast_period,
+            method=method
+        )
+
+        # Create figure with actual and forecasted values
+        fig = px.line(title=f'{forecast_method} Sales Forecast')
+
+        # Add historical data
+        historical = df_for_forecast.groupby('Date')['Total'].sum()
+        fig.add_scatter(
+            x=historical.index,
+            y=historical.values,
+            name='Historical Sales'
+        )
+
+        # Add forecast
+        fig.add_scatter(
+            x=forecasted_sales['Date'],
+            y=forecasted_sales['Forecasted Sales'],
+            name='Forecast',
+            line=dict(dash='dash')
+        )
+
+        st.plotly_chart(fig)

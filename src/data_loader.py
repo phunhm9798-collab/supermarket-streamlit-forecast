@@ -1,5 +1,6 @@
 import pandas as pd
 
+
 def load_data(file_path):
     df = pd.read_excel(
         io=file_path,
@@ -11,9 +12,11 @@ def load_data(file_path):
     )
     return df
 
+
 def preprocess_data(df):
     df["hour"] = pd.to_datetime(df["Time"], format="%H:%M:%S").dt.hour
     return df
+
 
 def get_sales_data(file_path):
     df = load_data(file_path)
