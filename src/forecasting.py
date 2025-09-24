@@ -125,35 +125,54 @@ class HoltWintersForecast(ForecastModel):
         n = len(series)
         seasonal_periods = 7 if n >= 14 else None
 
-        if seasonal_periods and n >= (seasonal_periods * 2):
-            self.model = ExponentialSmoothing(series,
-                                              trend='add',
-                                              seasonal='add',
-                                              seasonal_periods=seasonal_periods)
-        else:
-            self.model = ExponentialSmoothing(series,
-                                              trend='add',
-                                              seasonal=None)
-        self.model = self.model.fit(optimized=True,
-                                    use_boxcox=False,
-                                    remove_bias=False)
-        self.fitted = True
+        try:
+            if seasonal_periods and n >= (seasonal_periods * 2):
+                self.model = ExponentialSmoothing(
+                    series,
+                    trend='add',
+                    seasonal='add',
+                    seasonal_periods=seasonal_periods
+                )
+            else:
+                self.model = ExponentialSmoothing(
+                    series,
+                    trend='add',
+                    seasonal=None
+                )
+
+            # Remove use_boxcox parameter and simplify fit
+            self.model = self.model.fit(optimized=True)
+            self.fitted = True
+        except Exception as e:
+            print(f"Failed to fit Holt-Winters model: {str(e)}")
+            self.fitted = False
 
     def predict(self, periods: int) -> pd.Series:
         """Generate forecast using fitted Holt-Winters model"""
         if not self.fitted:
-            raise RuntimeError("Model must be fitted before predicting")
+            # Fallback to naive forecast if model wasn't fitted
+            last_value = float(self.data.iloc[-1, 0])
+            last_date = self.data.index[-1]
+            dates = pd.date_range(
+                start=last_date + pd.Timedelta(days=1),
+                periods=periods,
+                freq='D'
+            )
+            return pd.Series([last_value] * periods, index=dates)
 
         try:
             forecast = self.model.forecast(periods)
             return forecast
-        except Exception:
+        except Exception as e:
+            print(f"Failed to generate forecast: {str(e)}")
             # Fallback to naive forecast
             last_value = float(self.data.iloc[-1, 0])
             last_date = self.data.index[-1]
-            dates = pd.date_range(start=last_date + pd.Timedelta(days=1),
-                                  periods=periods,
-                                  freq='D')
+            dates = pd.date_range(
+                start=last_date + pd.Timedelta(days=1),
+                periods=periods,
+                freq='D'
+            )
             return pd.Series([last_value] * periods, index=dates)
 
 
