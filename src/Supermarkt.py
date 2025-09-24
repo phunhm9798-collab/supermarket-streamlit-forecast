@@ -2,7 +2,7 @@
 import pandas as pd
 import plotly.express as px
 import streamlit as st
-from src import forecasting  # Import the forecasting function
+import forecasting  # Import the forecasting function
 
 
 def get_data_from_excel():
